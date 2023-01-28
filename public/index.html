@@ -1,0 +1,124 @@
+<html lang="pl">
+    <head>
+        <title>FILMY</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                flex-direction: row;
+                justify-content: space-between;
+                min-width: 100vw;
+                background: radial-gradient(circle, rgb(255, 64, 0) 0%, rgb(255, 134, 47) 100%);
+            }
+            #getFilm, #recenzuj {
+                display: inline-block;
+                min-height: 100vh;
+                padding: 15px;
+                flex-grow: 1;
+            }
+            #recenzujForm {
+                display: flex;
+                flex-direction: column;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="getFilm">
+            <h1>Weź film</h1>
+            <form id="getForm">
+                <input type="text" name="tytul" placeholder="Tytuł"/>
+                <button type="submit">Szukaj</button>
+            </form>
+            <div id="getWynik"></div>
+        </div>
+        <div id="recenzuj">
+            <h1>Recenzuj</h1>
+            <form id="recenzujForm">
+                <input type="text" name="tytul" placeholder="Tytuł"/>
+                <textarea name="recenzja" placeholder="Recenzja"></textarea>
+                <button type="submit">Recenzuj</button>
+            </form>
+            <div id="recenzujWynik"></div>
+        </div>
+        <script>
+            function main() {
+                const getForm = document.getElementById('getForm');
+                const getWynik = document.getElementById('getWynik');
+                const recenzujForm = document.getElementById('recenzujForm');
+                const recenzujWynik = document.getElementById('recenzujWynik');
+
+                getForm.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    let tytul = getForm.tytul.value;
+
+                    tytul = tytul.toLowerCase().replaceAll(" ", "");
+
+                    if (tytul.length == 0) {
+                        getWynik.innerText = "Nie podano tytułu!";
+                        return;
+                    }
+
+                    fetch(`/api/filmy/${tytul}`).then((res) => {
+                        if (res.ok) {
+                            return res.json();
+                        } else if (res.status === 404) {
+                            throw new Error("Nie znaleziono takiego filmu!");
+                        } else {
+                            throw new Error("Nieznany błąd!");
+                        }
+                    }).then((data) => {
+                        getWynik.innerHTML = `
+                            <h3>${data.tytul}</h3>
+                            Reżyser: ${data.rezyser} <br>
+                            Pozytywne recenzje: ${data.pozytywneRecenzje} <br>
+                            Negatywne recenzje: ${data.negatywneRecenzje}
+                        `;
+                    }).catch((e) => {
+                        getWynik.innerText = e.message;
+                    });
+
+                });
+
+                recenzujForm.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    let tytul = recenzujForm.tytul.value;
+                    let recenzja = recenzujForm.recenzja.value.trim();
+
+                    tytul = tytul.toLowerCase().replaceAll(" ", "");
+
+                    if (tytul.length == 0) {
+                        recenzujWynik.innerText = "Nie podano tytułu!";
+                        return;
+                    } else if (recenzja.length == 0) {
+                        recenzujWynik.innerText = "Nie podano recenzji!";
+                        return;
+                    }
+
+                    fetch(`/api/filmy/${tytul}/review`, {
+                        method: "POST",
+                        body: recenzja,
+                        headers: {
+                            "Content-Type": "text/plain"
+                        }
+                    }).then((res) => {
+                        if (res.ok) {
+                            return res.text();
+                        } else if (res.status === 404) {
+                            throw new Error("Nie znaleziono takiego filmu!");
+                        } else {
+                            throw new Error("Nieznany błąd!");
+                        }
+                    }).then((data) => {
+                        recenzujWynik.innerText = `Twoja recenzja ma typ: ${data}`;
+                    }).catch((e) => {
+                        recenzujWynik.innerText = e.message;
+                    });
+                });
+
+            }
+            document.addEventListener('DOMContentLoaded', main);
+        </script>
+    </body>
+</html>
